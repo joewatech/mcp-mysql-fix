@@ -20,6 +20,8 @@ from oracle.mysql_mcp_server.utils import (
     load_mysql_config,
 )
 
+import os
+
 from oracle.mysql_mcp_server.consts import MIN_CONTEXT_SIZE, DEFAULT_CONTEXT_SIZE, MAX_CONTEXT_SIZE
 
 ###############################################################
@@ -91,15 +93,18 @@ def _get_mode(connection_id: str) -> Mode:
     Returns:
         Mode: The resolved provider mode.
     """
-    provider_result = _execute_sql_tool(connection_id, "SELECT @@rapid_cloud_provider;")
-    if check_error(provider_result):
-        raise Exception(
-            f"Exception occurred while fetching cloud provider {str(provider_result)}"
-        )
+    if os.environ.get('SKIP_MODE_CHECK_FOR_LOCAL_MYSQL').lower() == "true":
+        return Mode.MYSQL_AI
+    else:
+        provider_result = _execute_sql_tool(connection_id, "SELECT @@rapid_cloud_provider;")
+        if check_error(provider_result):
+            raise Exception(
+                f"Exception occurred while fetching cloud provider {str(provider_result)}"
+            )
 
-    provider = fetch_one(provider_result)
+        provider = fetch_one(provider_result)
 
-    return Mode.from_string(provider)
+        return Mode.from_string(provider)
 
 
 def get_error(json_str: Optional[str]) -> Optional[str]:
