@@ -258,12 +258,32 @@ class TestGetMode(unittest.TestCase):
         self.assertEqual(mode, m.Mode.MYSQL_AI)
         exec_mock.assert_called_once()
 
-    def test_skip_mode_check_not_set_raises_attribute_error(self):
-        """When SKIP_MODE_CHECK_NON_OCI_MYSQL is not set, os.environ.get returns None
-        and .lower() raises AttributeError."""
-        with mock.patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(AttributeError):
-                m._get_mode("any_conn")
+    def test_skip_mode_check_not_set_falls_through_to_sql(self):
+        """When SKIP_MODE_CHECK_NON_OCI_MYSQL is not set, should fall through to the SQL path."""
+        provider_result = json.dumps([["LCL"]])
+        with mock.patch.dict(os.environ, {}, clear=True), \
+             mock.patch.object(m, "_execute_sql_tool", return_value=provider_result) as exec_mock:
+            mode = m._get_mode("any_conn")
+        self.assertEqual(mode, m.Mode.MYSQL_AI)
+        exec_mock.assert_called_once()
+
+    def test_skip_mode_check_empty_string_falls_through_to_sql(self):
+        """When SKIP_MODE_CHECK_NON_OCI_MYSQL is set to empty string, should fall through to the SQL path."""
+        provider_result = json.dumps([["OCI"]])
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": ""}, clear=False), \
+             mock.patch.object(m, "_execute_sql_tool", return_value=provider_result) as exec_mock:
+            mode = m._get_mode("any_conn")
+        self.assertEqual(mode, m.Mode.OCI)
+        exec_mock.assert_called_once()
+
+    def test_skip_mode_check_arbitrary_value_falls_through_to_sql(self):
+        """When SKIP_MODE_CHECK_NON_OCI_MYSQL is set to a non-'true' value, should fall through to the SQL path."""
+        provider_result = json.dumps([["LCL"]])
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "yes"}, clear=False), \
+             mock.patch.object(m, "_execute_sql_tool", return_value=provider_result) as exec_mock:
+            mode = m._get_mode("any_conn")
+        self.assertEqual(mode, m.Mode.MYSQL_AI)
+        exec_mock.assert_called_once()
 
     # ---- SQL path (else branch) ----
 
