@@ -40,13 +40,15 @@ A Python-based MCP (Model Context Protocol) server that provides a suite of tool
   2) `local_config.json` (default)
 - Valid OCI configuration file (`~/.oci/config`) or environment variables
 
+## Non-OCI Configuration
+
+In MCP server json config file, add environemnt variable `SKIP_MODE_CHECK_NON_OCI_MYSQL` set to 'true' for connecting to MySQL instances that cannot return a value for the `SELECT @@rapid_cloud_provider;` query. See example below.
 
 ## OCI Configuration
 
 The server requires a valid OCI config file with proper credentials.
 The default location is ~/.oci/config. For instructions on setting up this file,
 see the [OCI SDK documentation](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdkconfig.htm).
-
 
 ## Supported Database Modes
 
@@ -74,8 +76,7 @@ Installation is dependent on the MCP Client being used, it usually consists of a
 **Note**: On Windows you may have to provide the suffix *.exe* to "oracle.mysql_mcp_server".
 
 
-
-Example with TENANCY_ID_OVERRIDE::
+Example with TENANCY_ID_OVERRIDE:
 ```json
 {
   "mcpServers": {
@@ -89,6 +90,27 @@ Example with TENANCY_ID_OVERRIDE::
       ],
       "env": {
         "TENANCY_ID_OVERRIDE": "ocid1.tenancy.oc1..deadbeef"
+      }
+    }
+  }
+}
+```
+
+
+Example with SKIP_MODE_CHECK_NON_OCI_MYSQL:
+```json
+{
+  "mcpServers": {
+    "mysqltools": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:\\ABSOLUTE\\PATH\\TO\\PARENT\\FOLDER\\mysql-mcp-server",
+        "run",
+        "oracle.mysql_mcp_server"
+      ],
+      "env": {
+        "SKIP_MODE_CHECK_NON_OCI_MYSQL": "true"
       }
     }
   }

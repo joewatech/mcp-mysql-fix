@@ -93,7 +93,7 @@ def _get_mode(connection_id: str) -> Mode:
     Returns:
         Mode: The resolved provider mode.
     """
-    if os.environ.get('SKIP_MODE_CHECK_FOR_LOCAL_MYSQL').lower() == "true":
+    if os.environ.get('SKIP_MODE_CHECK_NON_OCI_MYSQL').lower() == "true":
         return Mode.MYSQL_AI
     else:
         provider_result = _execute_sql_tool(connection_id, "SELECT @@rapid_cloud_provider;")

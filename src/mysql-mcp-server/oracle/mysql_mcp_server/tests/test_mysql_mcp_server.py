@@ -222,44 +222,44 @@ class TestMysqlMcpUtilities(unittest.TestCase):
 class TestGetMode(unittest.TestCase):
     """Dedicated tests for _get_mode covering both the env-var shortcut and the SQL path."""
 
-    # ---- Environment variable branch (SKIP_MODE_CHECK_FOR_LOCAL_MYSQL) ----
+    # ---- Environment variable branch (SKIP_MODE_CHECK_NON_OCI_MYSQL) ----
 
     def test_skip_mode_check_true_returns_mysql_ai(self):
-        """When SKIP_MODE_CHECK_FOR_LOCAL_MYSQL=true, should return Mode.MYSQL_AI without any SQL call."""
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "true"}):
+        """When SKIP_MODE_CHECK_NON_OCI_MYSQL=true, should return Mode.MYSQL_AI without any SQL call."""
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "true"}):
             mode = m._get_mode("any_conn")
         self.assertEqual(mode, m.Mode.MYSQL_AI)
 
     def test_skip_mode_check_true_uppercase_returns_mysql_ai(self):
         """Case-insensitive: TRUE should also return Mode.MYSQL_AI."""
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "TRUE"}):
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "TRUE"}):
             mode = m._get_mode("any_conn")
         self.assertEqual(mode, m.Mode.MYSQL_AI)
 
     def test_skip_mode_check_true_mixed_case_returns_mysql_ai(self):
         """Case-insensitive: TrUe should also return Mode.MYSQL_AI."""
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "TrUe"}):
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "TrUe"}):
             mode = m._get_mode("any_conn")
         self.assertEqual(mode, m.Mode.MYSQL_AI)
 
     def test_skip_mode_check_true_does_not_call_execute_sql(self):
         """When env var is true, _execute_sql_tool should never be called."""
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "true"}), \
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "true"}), \
              mock.patch.object(m, "_execute_sql_tool") as exec_mock:
             m._get_mode("any_conn")
         exec_mock.assert_not_called()
 
     def test_skip_mode_check_false_falls_through_to_sql(self):
-        """When SKIP_MODE_CHECK_FOR_LOCAL_MYSQL=false, should query the database."""
+        """When SKIP_MODE_CHECK_NON_OCI_MYSQL=false, should query the database."""
         provider_result = json.dumps([["LCL"]])
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "false"}), \
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "false"}), \
              mock.patch.object(m, "_execute_sql_tool", return_value=provider_result) as exec_mock:
             mode = m._get_mode("any_conn")
         self.assertEqual(mode, m.Mode.MYSQL_AI)
         exec_mock.assert_called_once()
 
     def test_skip_mode_check_not_set_raises_attribute_error(self):
-        """When SKIP_MODE_CHECK_FOR_LOCAL_MYSQL is not set, os.environ.get returns None
+        """When SKIP_MODE_CHECK_NON_OCI_MYSQL is not set, os.environ.get returns None
         and .lower() raises AttributeError."""
         with mock.patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(AttributeError):
@@ -270,7 +270,7 @@ class TestGetMode(unittest.TestCase):
     def test_sql_path_returns_mysql_ai_for_lcl(self):
         """SELECT @@rapid_cloud_provider returning 'LCL' -> Mode.MYSQL_AI."""
         provider_result = json.dumps([["LCL"]])
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "false"}), \
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "false"}), \
              mock.patch.object(m, "_execute_sql_tool", return_value=provider_result):
             mode = m._get_mode("any_conn")
         self.assertEqual(mode, m.Mode.MYSQL_AI)
@@ -278,7 +278,7 @@ class TestGetMode(unittest.TestCase):
     def test_sql_path_returns_oci_for_oci(self):
         """SELECT @@rapid_cloud_provider returning 'OCI' -> Mode.OCI."""
         provider_result = json.dumps([["OCI"]])
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "false"}), \
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "false"}), \
              mock.patch.object(m, "_execute_sql_tool", return_value=provider_result):
             mode = m._get_mode("any_conn")
         self.assertEqual(mode, m.Mode.OCI)
@@ -286,7 +286,7 @@ class TestGetMode(unittest.TestCase):
     def test_sql_path_error_from_execute_raises_exception(self):
         """If _execute_sql_tool returns an error JSON, _get_mode raises Exception."""
         provider_result = json.dumps({"error": "driver failure"})
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "false"}), \
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "false"}), \
              mock.patch.object(m, "_execute_sql_tool", return_value=provider_result):
             with self.assertRaises(Exception) as ctx:
                 m._get_mode("any_conn")
@@ -295,7 +295,7 @@ class TestGetMode(unittest.TestCase):
     def test_sql_path_invalid_provider_raises_value_error(self):
         """If the provider string is unrecognized, Mode.from_string raises ValueError."""
         provider_result = json.dumps([["UNKNOWN"]])
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "false"}), \
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "false"}), \
              mock.patch.object(m, "_execute_sql_tool", return_value=provider_result):
             with self.assertRaises(ValueError):
                 m._get_mode("any_conn")
@@ -303,7 +303,7 @@ class TestGetMode(unittest.TestCase):
     def test_sql_path_passes_correct_sql_and_connection_id(self):
         """Verify _execute_sql_tool is called with the right connection_id and SQL."""
         provider_result = json.dumps([["OCI"]])
-        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "false"}), \
+        with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "false"}), \
              mock.patch.object(m, "_execute_sql_tool", return_value=provider_result) as exec_mock:
             m._get_mode("my_connection")
         exec_mock.assert_called_once_with("my_connection", "SELECT @@rapid_cloud_provider;")
@@ -313,7 +313,7 @@ class TestGetMode(unittest.TestCase):
         for provider_str, expected_mode in [("lcl", m.Mode.MYSQL_AI), ("oci", m.Mode.OCI),
                                              ("Lcl", m.Mode.MYSQL_AI), ("Oci", m.Mode.OCI)]:
             provider_result = json.dumps([[provider_str]])
-            with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_FOR_LOCAL_MYSQL": "false"}), \
+            with mock.patch.dict(os.environ, {"SKIP_MODE_CHECK_NON_OCI_MYSQL": "false"}), \
                  mock.patch.object(m, "_execute_sql_tool", return_value=provider_result):
                 mode = m._get_mode("any_conn")
             self.assertEqual(mode, expected_mode, f"Failed for provider string '{provider_str}'")
